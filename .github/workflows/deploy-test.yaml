@@ -44,7 +44,12 @@ jobs:
           kubectl wait --namespace default \
             --for=condition=available deployment/rick-and-morty-api --timeout=90s
 
+      - name: Port-forward Service
+        run: |
+          nohup kubectl port-forward --namespace default svc/rick-and-morty-api 30080:80 > /dev/null 2>&1 &
+
       - name: Test Application Endpoints
         run: |
+          sleep 5  # Ensure port-forwarding is set up
           curl --fail http://127.0.0.1:30080/healthcheck
           curl --fail "http://127.0.0.1:30080/fetch_characters?species=Human&status=Alive&origin=Earth"
