@@ -1,4 +1,4 @@
-name: Deploy and Test Kubernetes
+name: Deploy and Test
 
 on:
   push:
@@ -9,46 +9,40 @@ jobs:
   deploy-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
-          kubectl version --client
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.27.3'
 
-      - name: Setup KinD
-        uses: helm/kind-action@v1.5.0
-
-      - name: Install Helm
+      - name: Set up Helm
         uses: azure/setup-helm@v3
         with:
-          version: v3.9.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          version: '3.9.0'
 
-      - name: Create Kubernetes cluster
-        run: |
-          kind create cluster --name test-cluster
-          kubectl cluster-info
+      - name: Create Kind Cluster
+        uses: helm/kind-action@v1.4.0
+        with:
+          name: test-cluster
+          wait: true
 
-      - name: Deploy application using Helm
+      - name: Install Helm Chart
         run: |
           helm install rick-and-morty-api ./helm/rick-and-morty-api
-          kubectl get all
 
-      - name: Wait for application to be ready
+      - name: List Resources
         run: |
+          kubectl get all --namespace default
+
+      - name: Wait for Application to Be Ready
+        run: |
+          sleep 10  # Give Helm some time to create resources
           kubectl wait --namespace default \
-            --for=condition=ready pod \
-            --selector=app.kubernetes.io/name=rick-and-morty-api \
-            --timeout=90s
+            --for=condition=available deployment/rick-and-morty-api --timeout=90s
 
-      - name: Test application endpoints
+      - name: Test Application Endpoints
         run: |
-          kubectl port-forward service/rick-and-morty-api 8080:80 &
-          sleep 5
-          curl http://127.0.0.1:8080/healthcheck
-          curl http://127.0.0.1:8080/fetch_characters?species=Human&status=Alive&origin=Earth
+          curl --fail http://127.0.0.1:30080/healthcheck
+          curl --fail "http://127.0.0.1:30080/fetch_characters?species=Human&status=Alive&origin=Earth"
