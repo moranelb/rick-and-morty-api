@@ -138,6 +138,7 @@ your-repository/
 ├── app/
 │   ├── app.py
 │   ├── requirements.txt
+│   ├── Dockerfile
 │
 ├── README.md
 ```
