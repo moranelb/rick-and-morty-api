@@ -27,8 +27,8 @@ jobs:
       - name: Create Kind Cluster
         uses: helm/kind-action@v1.4.0
         with:
-          name: test-cluster
-          wait: true
+          cluster_name: test-cluster
+          wait: "120s"
 
       - name: Install Helm Chart
         run: |
