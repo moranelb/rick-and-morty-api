@@ -1,0 +1,64 @@
+name: Deploy and Test Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup-cluster:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Kubernetes cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: v0.17.0
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.27.0'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Install nginx-ingress controller
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=90s
+
+  deploy-app:
+    runs-on: ubuntu-latest
+    needs: setup-cluster
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy application with Helm
+        run: |
+          cd helm/rick-and-morty-api
+          helm install rick-and-morty-api .
+
+  run-tests:
+    runs-on: ubuntu-latest
+    needs: deploy-app
+    steps:
+      - name: Map hostname for testing
+        run: |
+          echo "127.0.0.1 rick-and-morty.local" | sudo tee -a /etc/hosts
+
+      - name: Test Health Check Endpoint
+        run: |
+          curl -H "Host: rick-and-morty.local" http://127.0.0.1/healthcheck
+
+      - name: Test Fetch Characters Endpoint
+        run: |
+          curl -H "Host: rick-and-morty.local" "http://127.0.0.1/fetch_characters?species=Human&status=Alive&origin=Earth"

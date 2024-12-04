@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rick-and-morty-api
+  labels:
+    app: rick-and-morty-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rick-and-morty-api
+  template:
+    metadata:
+      labels:
+        app: rick-and-morty-api
+    spec:
+      containers:
+      - name: rick-and-morty-api
+        image: moranelb/rick-and-morty-api:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_ENV
+          value: production

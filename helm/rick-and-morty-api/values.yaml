@@ -1,0 +1,23 @@
+replicaCount: 1
+
+image:
+  repository: moranelb/rick-and-morty-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 5000
+  nodePort: 30080
+
+ingress:
+  enabled: true
+  hostname: rick-and-morty.local
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+  path: /
+  pathType: Prefix
+
+resources: {}
